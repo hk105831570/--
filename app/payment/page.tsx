@@ -48,6 +48,7 @@ function PaymentContent() {
   const planKey = searchParams.get("plan");
   const plan = plans.find((p) => p.key === planKey);
   const isReview = planKey === "review";
+  const isDevMode = searchParams.get("dev") === "1";
   const [confirmed, setConfirmed] = useState(false);
 
   const handleConfirmPayment = async () => {
@@ -91,14 +92,14 @@ function PaymentContent() {
       </div>
 
       <div className="mx-auto max-w-3xl px-5 py-8 sm:py-12">
-        {/* 方案摘要 — 更宽的内边距 */}
+        {/* 方案摘要 */}
         <div className="rounded-xl border border-gray-200 bg-white px-10 py-8 text-center shadow-sm">
           <h1 className="text-xl font-semibold text-gray-800">{isReview ? "联系顾问" : "扫码支付"}</h1>
           <p className="mt-1.5 text-sm text-gray-500">已选择：{plan.title}{isReview ? "" : ` · ${plan.price}`}</p>
         </div>
 
         {isReview ? (
-          /* 人工复核版 — 全宽展示 */
+          /* 人工复核版 */
           <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-10 py-12 text-center shadow-sm">
             <div className="mx-auto max-w-sm">
               <p className="text-base font-medium text-amber-900">
@@ -120,7 +121,7 @@ function PaymentContent() {
             </div>
           </div>
         ) : (
-          /* 完整方案版 — 全宽展示 */
+          /* 完整方案版 */
           <div className="mt-6 rounded-xl border border-gray-200 bg-white px-10 py-12 text-center shadow-sm">
             <div className="mx-auto max-w-sm">
               <h2 className="text-base font-semibold text-gray-700">请使用微信扫码支付</h2>
@@ -130,20 +131,39 @@ function PaymentContent() {
                   <QrImage src="/images/wechat-pay.jpg" alt="微信收款码" label="微信收款码" size={260} />
                 </div>
               </div>
-              {confirmed ? (
-                <div className="mt-6 rounded-lg bg-emerald-50 p-4 text-center">
-                  <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
-                  <p className="mt-2 text-sm font-medium text-emerald-800">支付验证成功，正在跳转报告...</p>
+
+              {/* 支付说明 — 告诉用户支付后联系微信获取报告 */}
+              <div className="mt-6 rounded-lg bg-amber-50 p-4 text-left">
+                <p className="text-sm font-medium text-amber-900">✅ 支付完成后：</p>
+                <ol className="mt-2 space-y-1 text-sm text-amber-800">
+                  <li>1. 截图保存支付凭证</li>
+                  <li>2. 添加底部顾问微信</li>
+                  <li>3. 发送支付截图 + 诊断编号</li>
+                  <li>4. 顾问核实后发放报告</li>
+                </ol>
+              </div>
+
+              {/* 开发者测试模式：仅在 URL 加 ?dev=1 时显示 */}
+              {isDevMode && (
+                <div className="mt-6 border-t border-dashed border-gray-300 pt-6">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-400">
+                    开发者测试模式
+                  </p>
+                  {confirmed ? (
+                    <div className="rounded-lg bg-emerald-50 p-4 text-center">
+                      <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
+                      <p className="mt-2 text-sm font-medium text-emerald-800">验证成功，正在跳转报告...</p>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleConfirmPayment}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-400 bg-gray-50 px-6 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-100"
+                    >
+                      测试：跳过支付，查看报告
+                    </button>
+                  )}
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleConfirmPayment}
-                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#1a2b4a] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0f1f36]"
-                >
-                  <CheckCircle2 className="h-5 w-5" />
-                  我已支付，查看报告
-                </button>
               )}
             </div>
           </div>

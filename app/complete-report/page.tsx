@@ -26,7 +26,7 @@ import {
 import CTASection from "@/components/CTASection";
 import Disclaimer from "@/components/Disclaimer";
 import { calculateRisk } from "@/lib/calculateRisk";
-import { getDiagnosis, getBasicInfo, getCaseId, isPaymentVerified } from "@/lib/storage";
+import { getDiagnosis, getBasicInfo, getCaseId, isPaymentVerified, markPaymentVerified } from "@/lib/storage";
 import type { DiagnosisSession, BasicInfo, ReportData } from "@/types/risk";
 
 function formatUserAnswers(session: DiagnosisSession): string {
@@ -101,10 +101,15 @@ export default function CompleteReportPage() {
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // 支付校验：未支付跳转回方案页
+    // 支付校验：未支付跳转回方案页（dev=1 跳过，用于开发者测试）
     if (typeof window !== "undefined" && !isPaymentVerified()) {
-      router.replace("/pay");
-      return;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("dev") === "1") {
+        markPaymentVerified();
+      } else {
+        router.replace("/pay");
+        return;
+      }
     }
     setSession(getDiagnosis());
     setBasicInfo(getBasicInfo());
