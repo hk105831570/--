@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
   response.cookies.set(getCookieName(), token, {
     httpOnly: true,
-    secure: false,
+    secure: true,
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24, // 24 hours
