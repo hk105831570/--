@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { ArrowLeft, Loader2, RefreshCw, Copy, Check, FileDown } from "lucide-react";
-import { getBasicInfo, getDiagnosis } from "@/lib/storage";
+import { getBasicInfo, getDiagnosis, isPaymentVerified } from "@/lib/storage";
 import { calculateRisk } from "@/lib/calculateRisk";
 import type { BasicInfo, DiagnosisSession } from "@/types/risk";
 
@@ -58,6 +58,13 @@ export default function CasesPage() {
   const [copied, setCopied] = useState(false);
   const [basicInfo, setBasicInfo] = useState<BasicInfo | null>(null);
   const [session, setSession] = useState<DiagnosisSession | null>(null);
+
+  // 支付检查：未支付跳转到方案页
+  useEffect(() => {
+    if (typeof window !== "undefined" && !isPaymentVerified()) {
+      router.replace("/pay");
+    }
+  }, [router]);
 
   const generateReport = useCallback(async () => {
     setLoading(true);

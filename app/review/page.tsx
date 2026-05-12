@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle2, FileText, MessageSquare, UserCheck } from "luc
 
 const plans = [
   { title: "免费版", icon: CheckCircle2, description: "查看基础风险等级、主要争议点和初步处理建议。", cta: "返回查看诊断结果", href: "/result", items: ["基础风险等级", "主要争议点", "初步处理建议"] },
-  { title: "完整方案版", icon: FileText, description: "生成《劳动纠纷处理建议书》，用于内部复盘和下一步处理准备。", cta: "获取完整处理建议书", href: "/complete-report", items: ["争议风险分析", "证据缺口清单", "7 天补强动作", "沟通注意事项", "常用文书模板清单", "处理路径建议"] },
+  { title: "完整方案版", icon: FileText, description: "生成《劳动纠纷处理建议书》，用于内部复盘和下一步处理准备。", cta: "获取完整处理建议书", href: "/pay", items: ["争议风险分析", "证据缺口清单", "7 天补强动作", "沟通注意事项", "常用文书模板清单", "处理路径建议"] },
   { title: "人工复核版", icon: UserCheck, description: "由顾问基于企业实际材料进行复核，输出定制化处理建议。", cta: "预约人工复核", href: "#", items: ["材料清单复核", "处理路径评估", "沟通和文书建议", "关键风险提示"] }
 ];
 

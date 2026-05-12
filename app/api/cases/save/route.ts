@@ -13,6 +13,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 基本防护：校验必填字段
+    if (!session.sceneId || !session.userRole || !session.answers || session.answers.length === 0) {
+      return NextResponse.json(
+        { error: "无效的诊断数据" },
+        { status: 400 }
+      );
+    }
+
     const caseId = await createCase({ basicInfo, session, riskResult });
 
     return NextResponse.json({ caseId }, { status: 201 });

@@ -74,6 +74,22 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { city, industry, companySize, workYears, sceneName, userAnswers, riskLevel, riskPoints, userRole, caseId } = body;
 
+  // 安全防护：必须提供有效的 caseId 才能调用 DeepSeek API
+  // 防止恶意请求消耗 API 额度
+  if (!caseId) {
+    return new Response(JSON.stringify({ error: "缺少诊断记录，请先完成诊断" }), { status: 403 });
+  }
+
+  // 验证 caseId 是否存在于数据库中
+  try {
+    const existing = await prisma.case.findUnique({ where: { id: caseId } });
+    if (!existing) {
+      return new Response(JSON.stringify({ error: "诊断记录无效，请重新诊断" }), { status: 403 });
+    }
+  } catch {
+    return new Response(JSON.stringify({ error: "验证诊断记录时出错" }), { status: 500 });
+  }
+
   const region = city || "中国";
   const date = new Date().toISOString().split("T")[0];
   const reportNumber = `LD-${date.replace(/-/g, "")}-${Math.floor(Math.random() * 1000).toString().padStart(3, "0")}`;
