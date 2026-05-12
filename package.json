@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "lint": "next lint"
+    "lint": "next lint",
+    "vercel-build": "prisma generate && prisma db push && next build --webpack"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
