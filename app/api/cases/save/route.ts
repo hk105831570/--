@@ -21,9 +21,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const caseId = await createCase({ basicInfo, session, riskResult });
+    const { caseId, accessToken } = await createCase({ basicInfo, session, riskResult });
 
-    return NextResponse.json({ caseId }, { status: 201 });
+    return NextResponse.json({ caseId, accessToken }, { status: 201 });
   } catch (error) {
     console.error("Failed to save case:", error);
     return NextResponse.json(

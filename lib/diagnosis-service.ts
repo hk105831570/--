@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { prisma } from "./prisma";
 import type { BasicInfo, DiagnosisAnswer, DiagnosisSession, ReportData, RiskResult } from "@/types/risk";
 
@@ -51,12 +52,14 @@ export interface CasesResponse {
   pageSize: number;
 }
 
-export async function createCase(input: CreateCaseInput): Promise<string> {
+export async function createCase(input: CreateCaseInput): Promise<{ caseId: string; accessToken: string }> {
   const basicInfo = input.basicInfo ?? {};
   const companyName =
     typeof basicInfo === "object" && "companyName" in basicInfo
       ? String((basicInfo as Record<string, unknown>).companyName ?? "")
       : "";
+
+  const accessToken = randomUUID();
 
   const case_ = await prisma.case.create({
     data: {
@@ -68,10 +71,11 @@ export async function createCase(input: CreateCaseInput): Promise<string> {
       riskLevel: input.riskResult.level,
       riskScore: input.riskResult.score,
       riskResult: JSON.stringify(input.riskResult),
+      accessToken,
     },
   });
 
-  return case_.id;
+  return { caseId: case_.id, accessToken };
 }
 
 export async function updateCaseReport(

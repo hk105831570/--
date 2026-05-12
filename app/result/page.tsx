@@ -9,7 +9,7 @@ import Disclaimer from "@/components/Disclaimer";
 import EvidenceGapList from "@/components/EvidenceGapList";
 import ResultSummary from "@/components/ResultSummary";
 import { calculateRisk } from "@/lib/calculateRisk";
-import { getDiagnosis, getBasicInfo, saveCaseId } from "@/lib/storage";
+import { getDiagnosis, getBasicInfo, saveCaseId, saveAccessToken } from "@/lib/storage";
 import type { DiagnosisSession } from "@/types/risk";
 
 interface CompensationItem {
@@ -84,6 +84,9 @@ export default function ResultPage() {
       .then((data) => {
         if (data.caseId) {
           saveCaseId(data.caseId);
+          if (data.accessToken) {
+            saveAccessToken(data.accessToken);
+          }
           setSaved(true);
         }
       })

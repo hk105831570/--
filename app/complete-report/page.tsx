@@ -26,7 +26,7 @@ import {
 import CTASection from "@/components/CTASection";
 import Disclaimer from "@/components/Disclaimer";
 import { calculateRisk } from "@/lib/calculateRisk";
-import { getDiagnosis, getBasicInfo, getCaseId, isPaymentVerified, markPaymentVerified } from "@/lib/storage";
+import { getDiagnosis, getBasicInfo, getCaseId, isPaymentVerified, markPaymentVerified, getAccessToken } from "@/lib/storage";
 import type { DiagnosisSession, BasicInfo, ReportData } from "@/types/risk";
 
 function formatUserAnswers(session: DiagnosisSession): string {
@@ -107,10 +107,11 @@ export default function CompleteReportPage() {
       if (params.get("dev") === "1") {
         // 开发者模式：自动走通支付验证
         const caseId = getCaseId();
+        const accessToken = getAccessToken();
         if (caseId) {
           fetch("/api/cases/generate-code", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "x-access-token": accessToken || "" },
             body: JSON.stringify({ caseId }),
           })
             .then((r) => r.json())
@@ -118,7 +119,7 @@ export default function CompleteReportPage() {
               if (data.accessCode) {
                 return fetch("/api/cases/verify-code", {
                   method: "POST",
-                  headers: { "Content-Type": "application/json" },
+                  headers: { "Content-Type": "application/json", "x-access-token": accessToken || "" },
                   body: JSON.stringify({ caseId, code: data.accessCode }),
                 });
               }
@@ -174,9 +175,10 @@ export default function CompleteReportPage() {
         caseId: caseId || undefined
       };
 
+      const accessToken = getAccessToken();
       const response = await fetch("/api/cases", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-access-token": accessToken || "" },
         body: JSON.stringify(requestBody)
       });
 

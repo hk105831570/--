@@ -27,4 +27,22 @@ model Case {
   reportNumber String?
   paymentVerified Boolean @default(false)
   accessCode      String?
+  accessToken     String?
+
+  orders Order[]
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  caseId          String
+  outTradeNo      String   @unique           // 商户订单号（我们生成，传给微信）
+  transactionId   String?                    // 微信支付订单号（支付成功后微信返回）
+  totalFee        Int                        // 金额，单位：分
+  status          String   @default("pending") // pending | paid | failed
+  payTime         DateTime?
+
+  case            Case     @relation(fields: [caseId], references: [id])
 }

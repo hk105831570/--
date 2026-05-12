@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateCaseAccess } from "@/lib/validate-access";
 
 const SYSTEM_PROMPT = `你是一位专业的中国劳动法律顾问。
 根据用户提供的劳动纠纷信息，严格按照以下 JSON 结构返回数据，不要输出任何 JSON 以外的内容，不要加 markdown 代码块标记。
@@ -73,14 +74,20 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { city, industry, companySize, workYears, sceneName, userAnswers, riskLevel, riskPoints, userRole, caseId } = body;
+  const accessToken = req.headers.get("x-access-token") || "";
 
-  // 安全防护：必须提供有效的 caseId 才能调用 DeepSeek API
-  // 防止恶意请求消耗 API 额度
+  // 安全防护：必须提供有效的 caseId 和 accessToken 才能调用 DeepSeek API
   if (!caseId) {
     return new Response(JSON.stringify({ error: "缺少诊断记录，请先完成诊断" }), { status: 403 });
   }
 
-  // 验证 caseId 是否存在于数据库中
+  // 验证 accessToken（防止通过 caseId 直接访问）
+  const validation = await validateCaseAccess(caseId, accessToken);
+  if (!validation.valid) {
+    return new Response(JSON.stringify({ error: validation.error }), { status: validation.status });
+  }
+
+  // 验证 caseId 是否存在并检查支付状态
   try {
     const existing = await prisma.case.findUnique({ where: { id: caseId } });
     if (!existing) {

@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateCaseAccess } from "@/lib/validate-access";
 
 export async function POST(req: NextRequest) {
   try {
     const { caseId, code } = await req.json();
+    const accessToken = req.headers.get("x-access-token") || "";
 
     if (!caseId || !code) {
       return NextResponse.json({ error: "缺少参数" }, { status: 400 });
+    }
+
+    // 验证访问权限
+    const validation = await validateCaseAccess(caseId, accessToken);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
 
     // 查找该 case 并验证验证码

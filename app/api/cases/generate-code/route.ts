@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateCaseAccess } from "@/lib/validate-access";
 
 export async function POST(req: NextRequest) {
   try {
     const { caseId } = await req.json();
+    const accessToken = req.headers.get("x-access-token") || "";
 
+    // 验证访问权限
     if (!caseId) {
       return NextResponse.json({ error: "缺少 caseId" }, { status: 400 });
+    }
+
+    const validation = await validateCaseAccess(caseId, accessToken);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
 
     const existing = await prisma.case.findUnique({ where: { id: caseId } });
