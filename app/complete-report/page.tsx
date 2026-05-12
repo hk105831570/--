@@ -101,18 +101,53 @@ export default function CompleteReportPage() {
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // 支付校验：未支付跳转回方案页（dev=1 跳过，用于开发者测试）
+    // 支付校验：未支付跳转回方案页
     if (typeof window !== "undefined" && !isPaymentVerified()) {
       const params = new URLSearchParams(window.location.search);
       if (params.get("dev") === "1") {
-        markPaymentVerified();
+        // 开发者模式：自动走通支付验证
+        const caseId = getCaseId();
+        if (caseId) {
+          fetch("/api/cases/generate-code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ caseId }),
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              if (data.accessCode) {
+                return fetch("/api/cases/verify-code", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ caseId, code: data.accessCode }),
+                });
+              }
+            })
+            .then((r) => r?.json())
+            .then((data) => {
+              if (data?.success) {
+                markPaymentVerified();
+              }
+              setSession(getDiagnosis());
+              setBasicInfo(getBasicInfo());
+            })
+            .catch(() => {
+              markPaymentVerified();
+              setSession(getDiagnosis());
+              setBasicInfo(getBasicInfo());
+            });
+        } else {
+          markPaymentVerified();
+          setSession(getDiagnosis());
+          setBasicInfo(getBasicInfo());
+        }
       } else {
         router.replace("/pay");
-        return;
       }
+    } else {
+      setSession(getDiagnosis());
+      setBasicInfo(getBasicInfo());
     }
-    setSession(getDiagnosis());
-    setBasicInfo(getBasicInfo());
   }, [router]);
 
   const result = useMemo(() => (session ? calculateRisk(session.answers, session.userRole) : null), [session]);

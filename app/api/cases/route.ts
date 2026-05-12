@@ -86,6 +86,10 @@ export async function POST(req: NextRequest) {
     if (!existing) {
       return new Response(JSON.stringify({ error: "诊断记录无效，请重新诊断" }), { status: 403 });
     }
+    // 支付验证：必须已支付才能生成完整报告
+    if (!existing.paymentVerified) {
+      return new Response(JSON.stringify({ error: "请先完成支付" }), { status: 402 });
+    }
   } catch {
     return new Response(JSON.stringify({ error: "验证诊断记录时出错" }), { status: 500 });
   }

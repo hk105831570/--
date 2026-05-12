@@ -25,4 +25,6 @@ model Case {
 
   reportData   String?
   reportNumber String?
+  paymentVerified Boolean @default(false)
+  accessCode      String?
 }
