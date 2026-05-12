@@ -33,6 +33,7 @@ export function getUserRole(): "employer" | "employee" {
 }
 
 const CASE_ID_KEY = "labor-risk-case-id";
+const PAYMENT_KEY = "labor-risk-payment-verified";
 const SHARE_TRACK_KEY = "labor-risk-share-tracking";
 
 export interface ShareTracking {
@@ -63,4 +64,17 @@ export function saveCaseId(id: string) {
 
 export function getCaseId(): string | null {
   return localStorage.getItem(CASE_ID_KEY);
+}
+
+export function markPaymentVerified() {
+  localStorage.setItem(PAYMENT_KEY, "true");
+}
+
+export function isPaymentVerified(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(PAYMENT_KEY) === "true";
+}
+
+export function clearPaymentStatus() {
+  localStorage.removeItem(PAYMENT_KEY);
 }

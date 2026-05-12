@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import html2canvas from "html2canvas";
 import {
   FileText,
@@ -25,7 +26,7 @@ import {
 import CTASection from "@/components/CTASection";
 import Disclaimer from "@/components/Disclaimer";
 import { calculateRisk } from "@/lib/calculateRisk";
-import { getDiagnosis, getBasicInfo, getCaseId } from "@/lib/storage";
+import { getDiagnosis, getBasicInfo, getCaseId, isPaymentVerified } from "@/lib/storage";
 import type { DiagnosisSession, BasicInfo, ReportData } from "@/types/risk";
 
 function formatUserAnswers(session: DiagnosisSession): string {
@@ -89,6 +90,7 @@ function LoadingSkeleton() {
 }
 
 export default function CompleteReportPage() {
+  const router = useRouter();
   const [session, setSession] = useState<DiagnosisSession | null>(null);
   const [basicInfo, setBasicInfo] = useState<BasicInfo | null>(null);
   const [report, setReport] = useState<ReportData | null>(null);
@@ -99,9 +101,14 @@ export default function CompleteReportPage() {
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // 支付校验：未支付跳转回方案页
+    if (typeof window !== "undefined" && !isPaymentVerified()) {
+      router.replace("/pay");
+      return;
+    }
     setSession(getDiagnosis());
     setBasicInfo(getBasicInfo());
-  }, []);
+  }, [router]);
 
   const result = useMemo(() => (session ? calculateRisk(session.answers, session.userRole) : null), [session]);
 

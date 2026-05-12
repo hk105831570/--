@@ -1,9 +1,10 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ImageIcon } from "lucide-react";
+import { ArrowLeft, ImageIcon, CheckCircle2 } from "lucide-react";
+import { markPaymentVerified } from "@/lib/storage";
 
 const plans = [
   { key: "complete", title: "完整方案版", price: "¥ 9.9" },
@@ -43,9 +44,19 @@ function QrImage({ src, alt, label, size = 240 }: { src: string; alt: string; la
 
 function PaymentContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const planKey = searchParams.get("plan");
   const plan = plans.find((p) => p.key === planKey);
   const isReview = planKey === "review";
+  const [confirmed, setConfirmed] = useState(false);
+
+  const handleConfirmPayment = async () => {
+    markPaymentVerified();
+    setConfirmed(true);
+    setTimeout(() => {
+      router.push("/complete-report");
+    }, 500);
+  };
 
   if (!plan) {
     return (
@@ -119,6 +130,21 @@ function PaymentContent() {
                   <QrImage src="/images/wechat-pay.jpg" alt="微信收款码" label="微信收款码" size={260} />
                 </div>
               </div>
+              {confirmed ? (
+                <div className="mt-6 rounded-lg bg-emerald-50 p-4 text-center">
+                  <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
+                  <p className="mt-2 text-sm font-medium text-emerald-800">支付验证成功，正在跳转报告...</p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleConfirmPayment}
+                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#1a2b4a] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0f1f36]"
+                >
+                  <CheckCircle2 className="h-5 w-5" />
+                  我已支付，查看报告
+                </button>
+              )}
             </div>
           </div>
         )}
