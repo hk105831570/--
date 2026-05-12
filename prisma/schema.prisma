@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Case {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userRole     String
+  sceneId      String
+  sceneTitle   String
+
+  basicInfo    String
+  answers      String
+
+  riskLevel    String
+  riskScore    Int
+  riskResult   String
+
+  reportData   String?
+  reportNumber String?
+}

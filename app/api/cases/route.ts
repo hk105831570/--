@@ -1,4 +1,5 @@
 import { type NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 const SYSTEM_PROMPT = `你是一位专业的中国劳动法律顾问。
 根据用户提供的劳动纠纷信息，严格按照以下 JSON 结构返回数据，不要输出任何 JSON 以外的内容，不要加 markdown 代码块标记。
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { city, industry, companySize, workYears, sceneName, userAnswers, riskLevel, riskPoints, userRole } = body;
+  const { city, industry, companySize, workYears, sceneName, userAnswers, riskLevel, riskPoints, userRole, caseId } = body;
 
   const region = city || "中国";
   const date = new Date().toISOString().split("T")[0];
@@ -131,6 +132,22 @@ export async function POST(req: NextRequest) {
 
   try {
     const json = JSON.parse(content);
+
+    // Save report to database if caseId is available
+    if (caseId && json.reportNumber) {
+      try {
+        await prisma.case.update({
+          where: { id: caseId },
+          data: {
+            reportData: JSON.stringify(json),
+            reportNumber: json.reportNumber,
+          },
+        });
+      } catch (dbError) {
+        console.error("Failed to save report to database:", dbError);
+      }
+    }
+
     return new Response(JSON.stringify(json), {
       headers: { "Content-Type": "application/json; charset=utf-8" }
     });

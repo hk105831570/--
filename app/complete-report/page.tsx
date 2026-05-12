@@ -25,7 +25,7 @@ import {
 import CTASection from "@/components/CTASection";
 import Disclaimer from "@/components/Disclaimer";
 import { calculateRisk } from "@/lib/calculateRisk";
-import { getDiagnosis, getBasicInfo } from "@/lib/storage";
+import { getDiagnosis, getBasicInfo, getCaseId } from "@/lib/storage";
 import type { DiagnosisSession, BasicInfo, ReportData } from "@/types/risk";
 
 function formatUserAnswers(session: DiagnosisSession): string {
@@ -112,6 +112,8 @@ export default function CompleteReportPage() {
     setError(null);
 
     try {
+      const caseId = getCaseId();
+
       const requestBody = {
         city: basicInfo?.city || "",
         industry: basicInfo?.industry || "",
@@ -121,7 +123,8 @@ export default function CompleteReportPage() {
         userAnswers: formatUserAnswers(session),
         riskLevel: result.levelText,
         riskPoints: result.disputePoints,
-        userRole: session.userRole || "employer"
+        userRole: session.userRole || "employer",
+        caseId: caseId || undefined
       };
 
       const response = await fetch("/api/cases", {

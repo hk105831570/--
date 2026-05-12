@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, ClipboardList, FileWarning, Route, Scale, ChevronDown, ChevronUp, BookOpen, Gavel } from "lucide-react";
-import CTASection from "@/components/CTASection";
+import { ClipboardList, FileWarning, Route, Scale, ChevronDown, ChevronUp, BookOpen, Gavel, Share2, Lock } from "lucide-react";
+import ShareButton from "@/components/ShareButton";
 import Disclaimer from "@/components/Disclaimer";
 import EvidenceGapList from "@/components/EvidenceGapList";
 import ResultSummary from "@/components/ResultSummary";
 import { calculateRisk } from "@/lib/calculateRisk";
-import { getDiagnosis, getBasicInfo } from "@/lib/storage";
+import { getDiagnosis, getBasicInfo, saveCaseId } from "@/lib/storage";
 import type { DiagnosisSession } from "@/types/risk";
 
 interface CompensationItem {
@@ -65,11 +65,32 @@ export default function ResultPage() {
   const [session, setSession] = useState<DiagnosisSession | null>(null);
   const [legalOpen, setLegalOpen] = useState(false);
   const [basicInfo, setBasicInfo] = useState<ReturnType<typeof getBasicInfo>>(null);
+  const [saved, setSaved] = useState(false);
   useEffect(() => {
     setSession(getDiagnosis());
     setBasicInfo(getBasicInfo());
   }, []);
   const result = useMemo(() => (session ? calculateRisk(session.answers, session.userRole) : null), [session]);
+
+  // Auto-save diagnosis data to database
+  useEffect(() => {
+    if (!session || !result || !basicInfo || saved) return;
+    fetch("/api/cases/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ basicInfo, session, riskResult: result })
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.caseId) {
+          saveCaseId(data.caseId);
+          setSaved(true);
+        }
+      })
+      .catch(() => {
+        // Non-blocking - localStorage remains the primary data store
+      });
+  }, [session, result, basicInfo, saved]);
 
   if (!session || !result) {
     return <main className="flex min-h-screen items-center justify-center bg-[#F7F8FB] px-5"><div className="rounded-lg border border-line bg-white p-8 text-center shadow-panel"><h1 className="text-xl font-semibold text-ink">暂无诊断结果</h1><p className="mt-2 text-sm text-muted">请先完成一个场景问卷，再查看结果。</p><Link href="/scenes" className="mt-5 inline-flex rounded-md bg-navy px-5 py-3 text-sm font-semibold text-white">开始诊断当前纠纷</Link></div></main>;
@@ -169,19 +190,52 @@ export default function ResultPage() {
           </p>
         </div>
 
-        <div className="mt-5">
-          <CTASection
-            title={isEmployee ? "免费版已展示您的权益评估，完整维权方案可进一步指导您如何操作" : "免费版已完成基础诊断，完整方案可进一步拆解执行动作"}
-            description={isEmployee ? "完整维权方案书包含证据清单、仲裁申请要点、法律依据和操作步骤，帮助您系统地准备维权。" : "完整方案会把争议风险、证据缺口、7 天补强动作、沟通注意事项和常用文书模板清单整理成处理建议书，供老板、HR 和顾问共同复核。"}
-            buttonText={isEmployee ? "获取完整维权方案书" : "获取完整处理建议书"}
-          />
+        {/* 分享区块 */}
+        <div className="mt-5 rounded-lg border border-line bg-white p-5">
+          <h3 className="flex items-center gap-2 font-semibold text-ink"><Share2 className="h-4 w-4 text-navy" />把诊断结果分享给同事或朋友</h3>
+          <div className="mt-4">
+            <ShareButton scene={session.sceneId} role={session.userRole} level={result.level} variant="result" />
+          </div>
+          <p className="mt-3 text-xs text-muted">分享内容仅展示风险等级和场景类型，不包含填写的具体信息</p>
         </div>
 
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <Link href="/scenes" className="inline-flex items-center justify-center rounded-md border border-line bg-white px-5 py-3 text-sm font-semibold text-ink">重新选择场景</Link>
-          <Link href="/review" className="inline-flex items-center justify-center rounded-md bg-navy px-5 py-3 text-sm font-semibold text-white">
-            {isEmployee ? "查看完整维权方案" : "获取完整方案与人工复核"}<ArrowRight className="ml-2 h-4 w-4" />
+        {/* 付费解锁提示 — 价值导向，不显示价格 */}
+        <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-5">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+            <Lock className="h-4 w-4" />
+            免费结果只是第一步
+          </div>
+          <p className="mt-2 text-sm leading-6 text-amber-800">
+            上面的评估展示了基本情况，但处理劳动纠纷的关键在于行动。完整方案会告诉你每一步具体做什么、准备什么、注意什么。
+          </p>
+          <ul className="mt-4 space-y-2 text-sm text-amber-900">
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5 text-amber-600">→</span>
+              <span><strong>7 天补强行动方案</strong> — 从今天开始每天该做什么，按时间顺序列出</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5 text-amber-600">→</span>
+              <span><strong>证据缺口清单</strong> — 你缺少哪些关键证据、怎么补充</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5 text-amber-600">→</span>
+              <span><strong>常用文书模板</strong> — 辞职函、协商记录、仲裁申请等模板清单</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5 text-amber-600">→</span>
+              <span><strong>处理路径对比</strong> — 协商、调解、仲裁三条路各自怎么走</span>
+            </li>
+          </ul>
+          <Link
+            href="/pay"
+            className="mt-4 inline-flex w-full items-center justify-center rounded-md bg-[#1a2b4a] px-5 py-3 text-sm font-semibold text-white hover:bg-[#0f1f36]"
+          >
+            查看完整方案详解 →
           </Link>
+        </div>
+
+        <div className="mt-5">
+          <Link href="/scenes" className="inline-flex items-center justify-center rounded-md border border-line bg-white px-5 py-3 text-sm font-semibold text-ink">重新选择场景</Link>
         </div>
 
         <footer className="mt-8"><Disclaimer /></footer>

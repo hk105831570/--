@@ -8,23 +8,25 @@ import { getSceneById } from "@/data/scenes";
 import { saveBasicInfo, getUserRole } from "@/lib/storage";
 import type { BasicInfo } from "@/types/risk";
 
-const employerFields: Array<{ name: keyof BasicInfo; label: string; placeholder: string; type?: string }> = [
-  { name: "companyName", label: "企业名称（可选）", placeholder: "例如：某某科技有限公司" },
+type FieldDef = { name: keyof BasicInfo; label: string; placeholder: string; type?: string; optional?: true };
+
+const employerFields: FieldDef[] = [
+  { name: "companyName", label: "企业名称", placeholder: "例如：某某科技有限公司", optional: true },
   { name: "companySize", label: "企业人数", placeholder: "例如：30-50 人" },
   { name: "city", label: "所在城市", placeholder: "例如：上海" },
   { name: "industry", label: "行业类型", placeholder: "例如：制造业 / 零售 / 互联网" },
   { name: "monthlySalary", label: "员工月工资", placeholder: "例如：12000 元" },
   { name: "entryDate", label: "员工入职时间", placeholder: "请选择日期", type: "date" },
-  { name: "contact", label: "联系方式（手机号或微信号，可选）", placeholder: "用于人工复核时联系" },
+  { name: "contact", label: "联系方式（手机号或微信号）", placeholder: "用于人工复核时联系", optional: true },
 ];
 
-const employeeFields: Array<{ name: keyof BasicInfo; label: string; placeholder: string; type?: string }> = [
-  { name: "companyName", label: "公司名称（可选）", placeholder: "例如：某某科技有限公司" },
+const employeeFields: FieldDef[] = [
+  { name: "companyName", label: "公司名称", placeholder: "例如：某某科技有限公司", optional: true },
   { name: "city", label: "所在城市", placeholder: "例如：上海" },
   { name: "industry", label: "行业类型", placeholder: "例如：制造业 / 零售 / 互联网" },
   { name: "monthlySalary", label: "您的月工资", placeholder: "例如：12000 元" },
   { name: "entryDate", label: "入职时间", placeholder: "请选择日期", type: "date" },
-  { name: "contact", label: "联系方式（手机号或微信号，可选）", placeholder: "用于人工复核时联系" },
+  { name: "contact", label: "联系方式（手机号或微信号）", placeholder: "用于人工复核时联系", optional: true },
 ];
 
 function BasicInfoForm() {
@@ -79,8 +81,8 @@ function BasicInfoForm() {
             <div className="grid gap-5 md:grid-cols-2">
               {fields.map((field) => (
                 <label key={field.name} className="grid gap-2 text-sm font-medium text-ink">
-                  {field.label}
-                  <input type={field.type || "text"} value={form[field.name] || ""} onChange={(event) => update(field.name, event.target.value)} placeholder={field.placeholder} className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-navy focus:ring-2 focus:ring-blue-100" />
+                  <span>{field.label}{field.optional && <span className="ml-1 text-muted">（选填）</span>}</span>
+                  <input type={field.type || "text"} value={form[field.name] || ""} onChange={(event) => update(field.name, event.target.value)} placeholder={field.placeholder} required={!field.optional} className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-navy focus:ring-2 focus:ring-blue-100" />
                 </label>
               ))}
             </div>
@@ -88,7 +90,8 @@ function BasicInfoForm() {
               {selects.map((field) => (
                 <label key={field.name} className="grid gap-2 text-sm font-medium text-ink">
                   {field.label}
-                  <select value={form[field.name] || ""} onChange={(event) => update(field.name, event.target.value)} className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-navy focus:ring-2 focus:ring-blue-100">
+                  <select value={form[field.name] || ""} onChange={(event) => update(field.name, event.target.value)} required className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-navy focus:ring-2 focus:ring-blue-100">
+                    <option value="">请选择</option>
                     {field.options.map((option) => <option key={option}>{option}</option>)}
                   </select>
                 </label>

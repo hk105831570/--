@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ShareBanner, ShareRecommend } from "@/components/ShareLanding";
 
 export default function Home() {
   return (
@@ -39,6 +40,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <ShareBanner />
 
       {/* 区块二：双方焦虑对照 */}
       <section className="border-b border-gray-200 bg-white px-5 md:px-11">
@@ -316,6 +319,8 @@ export default function Home() {
         </div>
       </section>
 
+      <ShareRecommend />
+
       {/* 底部免责声明 */}
       <footer className="bg-white px-5 py-[18px] md:px-11">
         <p className="text-center text-[11px] leading-[1.7] text-gray-500">
@@ -323,6 +328,9 @@ export default function Home() {
           <br />
           具体案件建议结合完整事实及当地裁判口径综合判断，必要时咨询持证律师。
         </p>
+        <div className="mt-4 flex items-center justify-center gap-4">
+          <Link href="/admin" className="text-[11px] text-gray-400 underline hover:text-gray-600">管理后台</Link>
+        </div>
       </footer>
     </main>
   );

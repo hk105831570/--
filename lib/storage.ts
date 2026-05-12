@@ -32,7 +32,35 @@ export function getUserRole(): "employer" | "employee" {
   return (localStorage.getItem(USER_ROLE_KEY) as "employer" | "employee") || "employer";
 }
 
+const CASE_ID_KEY = "labor-risk-case-id";
+const SHARE_TRACK_KEY = "labor-risk-share-tracking";
+
+export interface ShareTracking {
+  fromShare: boolean;
+  shareScene: string;
+  shareRole: string;
+  shareLevel: string;
+  landingTime: string;
+}
+
+export function saveShareTracking(info: ShareTracking) {
+  localStorage.setItem(SHARE_TRACK_KEY, JSON.stringify(info));
+}
+
+export function getShareTracking(): ShareTracking | null {
+  const raw = localStorage.getItem(SHARE_TRACK_KEY);
+  return raw ? (JSON.parse(raw) as ShareTracking) : null;
+}
+
 export function clearDiagnosis() {
   localStorage.removeItem(DIAGNOSIS_KEY);
   localStorage.removeItem(BASIC_INFO_KEY);
+}
+
+export function saveCaseId(id: string) {
+  localStorage.setItem(CASE_ID_KEY, id);
+}
+
+export function getCaseId(): string | null {
+  return localStorage.getItem(CASE_ID_KEY);
 }
