@@ -99,7 +99,16 @@ function PaymentContent() {
             <div className="mx-auto max-w-sm">
               <MessageSquare className="mx-auto h-10 w-10 text-amber-600" />
               <p className="mt-4 text-base font-medium text-amber-900">人工复核版由顾问一对一服务</p>
-              <p className="mt-2 text-sm text-amber-700">付款后联系顾问获取验证码，输入后解锁报告</p>
+              <p className="mt-2 text-sm text-amber-700">请添加顾问微信，完成支付后获取验证码</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/wechat-contact.jpg"
+                alt="顾问微信二维码"
+                className="mx-auto mt-6 rounded-xl border border-amber-200 shadow-sm"
+                width={200}
+                height={200}
+              />
+              <p className="mt-2 text-xs text-amber-600">扫码添加顾问微信</p>
             </div>
           </div>
         ) : (

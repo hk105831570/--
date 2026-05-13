@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2, FileText, MessageSquare, UserCheck } from "luc
 const plans = [
   { title: "免费版", icon: CheckCircle2, description: "查看基础风险等级、主要争议点和初步处理建议。", cta: "返回查看诊断结果", href: "/result", items: ["基础风险等级", "主要争议点", "初步处理建议"] },
   { title: "完整方案版", icon: FileText, description: "生成《劳动纠纷处理建议书》，用于内部复盘和下一步处理准备。", cta: "获取完整处理建议书", href: "/pay", items: ["争议风险分析", "证据缺口清单", "7 天补强动作", "沟通注意事项", "常用文书模板清单", "处理路径建议"] },
-  { title: "人工复核版", icon: UserCheck, description: "由顾问基于企业实际材料进行复核，输出定制化处理建议。", cta: "预约人工复核", href: "#", items: ["材料清单复核", "处理路径评估", "沟通和文书建议", "关键风险提示"] }
+  { title: "人工复核版", icon: UserCheck, description: "由顾问基于企业实际材料进行复核，输出定制化处理建议。", cta: "预约人工复核", href: "/pay?plan=review", items: ["材料清单复核", "处理路径评估", "沟通和文书建议", "关键风险提示"] }
 ];
 
 export default function ReviewPage() {
@@ -32,9 +32,30 @@ export default function ReviewPage() {
           })}
         </div>
         <section className="mt-6 rounded-lg border border-red-100 bg-white p-6 shadow-panel sm:p-8">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div><h2 className="text-xl font-semibold text-ink">需要顾问看材料时，可以先添加微信沟通</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted">第一版暂不接真实支付。这里可作为获客转化入口，后续接入微信、支付、PDF 报告和顾问工作台。</p></div>
-            <button className="inline-flex items-center justify-center rounded-md bg-danger px-5 py-3 text-sm font-semibold text-white"><MessageSquare className="mr-2 h-4 w-4" />添加顾问微信</button>
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-ink">添加顾问微信，预约人工复核</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+                扫码添加顾问微信，发送诊断截图即可预约人工复核。顾问会根据企业实际材料进行复核，输出定制化处理建议。
+              </p>
+              <div className="mt-4 space-y-2 text-sm text-muted">
+                <p className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />材料清单复核</p>
+                <p className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />处理路径评估</p>
+                <p className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />沟通和文书建议</p>
+                <p className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />关键风险提示</p>
+              </div>
+            </div>
+            <div className="text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/wechat-contact.jpg"
+                alt="顾问微信二维码"
+                className="mx-auto rounded-xl border border-red-100 shadow-sm"
+                width={180}
+                height={180}
+              />
+              <p className="mt-2 text-xs font-medium text-danger">扫码添加顾问微信</p>
+            </div>
           </div>
         </section>
       </div>
