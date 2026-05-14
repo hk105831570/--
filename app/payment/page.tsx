@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, XCircle, KeyRound, MessageSquare, Loader2, QrCode } from "lucide-react";
 import { markPaymentVerified, getCaseId, getAccessToken, saveCaseId, saveAccessToken } from "@/lib/storage";
+import { calculateRisk } from "@/lib/calculateRisk";
 
 // 支付轮询间隔（毫秒）
 const POLL_INTERVAL = 3000;
@@ -51,13 +52,16 @@ function PaymentContent() {
       
       try {
         const accessToken = getAccessToken();
+        const sessionObj = JSON.parse(session);
+        // 从 session 重新计算风险结果
+        const riskResult = calculateRisk(sessionObj.answers, sessionObj.userRole);
         const saveRes = await fetch("/api/cases/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             basicInfo: basicInfo ? JSON.parse(basicInfo) : null,
-            session: JSON.parse(session),
-            riskResult: null,
+            session: sessionObj,
+            riskResult,
           }),
         });
         const saveData = await saveRes.json();
