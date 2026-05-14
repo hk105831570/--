@@ -320,8 +320,8 @@ function PaymentContent() {
           </div>
         )}
 
-        {/* 验证码输入（两种方案共用） */}
-        {(isReview || (isComplete && paymentStep === "paid")) && (
+        {/* 验证码输入（仅完整方案版支付后显示） */}
+        {isComplete && paymentStep === "paid" && (
           <div className="mt-6 rounded-xl border border-gray-200 bg-white px-10 py-12 text-center shadow-sm">
             <div className="mx-auto max-w-sm">
               <KeyRound className="mx-auto h-10 w-10 text-[#1a2b4a]" />
