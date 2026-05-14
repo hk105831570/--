@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, XCircle, KeyRound, MessageSquare, Loader2, QrCode } from "lucide-react";
-import { markPaymentVerified, getCaseId, getAccessToken } from "@/lib/storage";
+import { markPaymentVerified, getCaseId, getAccessToken, saveCaseId, saveAccessToken } from "@/lib/storage";
 
 // 支付轮询间隔（毫秒）
 const POLL_INTERVAL = 3000;
@@ -38,10 +38,41 @@ function PaymentContent() {
 
   /** 创建支付订单 */
   const createPayment = useCallback(async () => {
-    const caseId = getCaseId();
+    let caseId = getCaseId();
+    
+    // 如果 caseId 不存在，尝试先保存诊断记录
     if (!caseId) {
-      setPayError("未找到诊断记录，请先完成诊断");
-      return;
+      const session = localStorage.getItem("labor-risk-diagnosis-session");
+      const basicInfo = localStorage.getItem("labor-risk-basic-info");
+      if (!session) {
+        setPayError("未找到诊断记录，请先完成诊断");
+        return;
+      }
+      
+      try {
+        const accessToken = getAccessToken();
+        const saveRes = await fetch("/api/cases/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            basicInfo: basicInfo ? JSON.parse(basicInfo) : null,
+            session: JSON.parse(session),
+            riskResult: null,
+          }),
+        });
+        const saveData = await saveRes.json();
+        if (saveData.caseId) {
+          saveCaseId(saveData.caseId);
+          if (saveData.accessToken) saveAccessToken(saveData.accessToken);
+          caseId = saveData.caseId;
+        } else {
+          setPayError("创建诊断记录失败，请重新完成诊断");
+          return;
+        }
+      } catch {
+        setPayError("网络错误，请重试");
+        return;
+      }
     }
 
     setCreating(true);
