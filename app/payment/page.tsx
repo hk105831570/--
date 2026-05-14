@@ -180,35 +180,7 @@ function PaymentContent() {
             </div>
             <p className="mt-2 text-xs text-gray-400">二维码有效期 5 分钟</p>
 
-            {/* 手动确认支付 */}
-            <div className="mt-6 border-t border-gray-100 pt-6">
-              <p className="text-sm text-gray-500">已经支付成功了？</p>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const res = await fetch("/api/pay/confirm", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ caseId }),
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                      setStep("paid");
-                      localStorage.setItem("labor-risk-payment-verified", "true");
-                      setTimeout(() => router.push("/complete-report"), 1500);
-                    } else {
-                      alert(data.error || "确认失败，请联系客服");
-                    }
-                  } catch {
-                    alert("网络错误，请重试");
-                  }
-                }}
-                className="mt-2 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
-              >
-                我已支付，确认
-              </button>
-            </div>
+            <p className="mt-6 text-sm text-gray-500">支付成功后手机将自动跳转，请稍候...</p>
 
             <button
               type="button"

@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     const timestamp = Date.now().toString();
     const random = crypto.randomBytes(4).toString("hex").toUpperCase();
     const outTradeNo = `LD${timestamp}${random}`;
-    const returnUrl = `${siteUrl}/complete-report`;
+    const returnUrl = `${siteUrl}/pay/success?case_id=${case_.id}`;
 
     const orderResult = await createXhOrder({
       appid,
