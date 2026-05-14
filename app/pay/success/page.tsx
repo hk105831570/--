@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Loader2, Smartphone } from "lucide-react";
 
-export default function PaySuccessPage() {
+function SuccessContent() {
   const searchParams = useSearchParams();
   const caseId = searchParams.get("case_id");
   const [status, setStatus] = useState<"confirming" | "success" | "error">("confirming");
@@ -18,7 +18,6 @@ export default function PaySuccessPage() {
       return;
     }
 
-    // 通过手机浏览器回跳，确认支付
     fetch("/api/pay/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -90,5 +89,17 @@ export default function PaySuccessPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function PaySuccessPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-screen items-center justify-center bg-[#F7F8FB]">
+        <p className="text-sm text-gray-500">加载中...</p>
+      </main>
+    }>
+      <SuccessContent />
+    </Suspense>
   );
 }
