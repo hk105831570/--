@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { createNativeOrder, queryOrder } from "@/lib/wechat-pay";
+import { createXhOrder } from "@/lib/xunhupay";
 import { validateCaseAccess } from "@/lib/validate-access";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { caseId } = body;
+    const { caseId, plan } = body; // plan: "complete" | "review"
     const accessToken = req.headers.get("x-access-token") || "";
 
     if (!caseId) {
@@ -26,7 +26,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "诊断记录无效" }, { status: 404 });
     }
     if (existing.paymentVerified) {
-      return NextResponse.json({ success: true, code_url: null, message: "已完成支付" });
+      return NextResponse.json({ success: true, qrcode: null, message: "已完成支付" });
+    }
+
+    // 根据方案确定价格（单位：元）
+    const planConfig: Record<string, { price: number; title: string }> = {
+      complete: { price: 9.9, title: "劳动纠纷诊断-完整方案版" },
+      review: { price: 499, title: "劳动纠纷诊断-人工复核版" },
+    };
+    const config = planConfig[plan || "complete"];
+    if (!config) {
+      return NextResponse.json({ error: "无效的方案" }, { status: 400 });
     }
 
     // 检查是否已有未支付订单
@@ -35,41 +45,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (pendingOrder) {
-      // 已经有订单，尝试查询微信侧状态
-      const appid = process.env.WECHAT_APPID || "";
-      const mch_id = process.env.WECHAT_MCH_ID || "";
-      const apiKey = process.env.WECHAT_API_KEY || "";
-
-      const queryResult = await queryOrder({
-        appid,
-        mch_id,
-        apiKey,
-        out_trade_no: pendingOrder.outTradeNo,
-      });
-
-      if (queryResult.success && queryResult.status === "SUCCESS") {
-        // 已支付，更新状态
-        await prisma.order.update({
-          where: { id: pendingOrder.id },
-          data: {
-            status: "paid",
-            transactionId: queryResult.transaction_id,
-            payTime: queryResult.time_end ? new Date(queryResult.time_end.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, "$1-$2-$3T$4:$5:$6")) : new Date(),
-          },
-        });
-        await prisma.case.update({
-          where: { id: caseId },
-          data: { paymentVerified: true },
-        });
-        return NextResponse.json({ success: true, code_url: null, message: "已完成支付" });
-      }
-
-      // 订单还在 pending，重新返回 code_url（但没法获取旧的 code_url 了）
-      // 所以需要重新下单
-    }
-
-    // 如果有旧的 pending 订单，先关闭
-    if (pendingOrder) {
+      // 已有未支付订单，直接重新创建（虎皮椒不提供订单查询API，走重新下单流程）
       await prisma.order.update({
         where: { id: pendingOrder.id },
         data: { status: "closed" },
@@ -77,30 +53,30 @@ export async function POST(req: NextRequest) {
     }
 
     // 环境变量
-    const appid = process.env.WECHAT_APPID || "";
-    const mch_id = process.env.WECHAT_MCH_ID || "";
-    const apiKey = process.env.WECHAT_API_KEY || "";
-    const notifyUrl = process.env.WECHAT_NOTIFY_URL || "";
+    const appid = process.env.XUNHUPAY_APPID || "";
+    const appsecret = process.env.XUNHUPAY_APPSECRET || "";
+    const notifyUrl = process.env.XUNHUPAY_NOTIFY_URL || "";
+    const returnUrl = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/complete-report`;
 
-    if (!appid || !mch_id || !apiKey || !notifyUrl) {
+    if (!appid || !appsecret || !notifyUrl) {
       return NextResponse.json({ error: "支付配置不完整，请联系管理员" }, { status: 500 });
     }
 
-    // 生成商户订单号：前缀 + 时间戳 + 随机数
+    // 生成商户订单号
     const timestamp = Date.now().toString();
     const random = crypto.randomBytes(4).toString("hex").toUpperCase();
     const outTradeNo = `LD${timestamp}${random}`;
 
-    // 调用微信统一下单
-    const orderResult = await createNativeOrder({
+    // 调用虎皮椒下单
+    const orderResult = await createXhOrder({
       appid,
-      mch_id,
-      apiKey,
-      body: "劳动纠纷诊断报告",
-      out_trade_no: outTradeNo,
-      total_fee: 990, // ¥9.9 = 990分
-      spbill_create_ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "127.0.0.1",
-      notify_url: notifyUrl,
+      appsecret,
+      tradeOrderId: outTradeNo,
+      totalFee: config.price,
+      title: config.title,
+      notifyUrl,
+      returnUrl,
+      attach: caseId, // 附上 caseId 方便回调时查找
     });
 
     if (!orderResult.success) {
@@ -112,15 +88,18 @@ export async function POST(req: NextRequest) {
       data: {
         caseId,
         outTradeNo,
-        totalFee: 990,
+        totalFee: Math.round(config.price * 100), // 转分为单位存储
         status: "pending",
       },
     });
 
+    // 返回支付二维码给前端
     return NextResponse.json({
       success: true,
-      code_url: orderResult.code_url,
+      qrcode: orderResult.urlQrcode,     // PC 扫码支付二维码
+      url: orderResult.url,              // 手机端跳转链接
       out_trade_no: outTradeNo,
+      total_fee: config.price,
     });
   } catch (error) {
     console.error("Failed to create payment:", error);

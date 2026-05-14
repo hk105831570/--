@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("PRISMA_DATABASE_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model Case {
@@ -28,6 +28,10 @@ model Case {
   paymentVerified Boolean @default(false)
   accessCode      String?
   accessToken     String?
+  email           String?                    // 用户邮箱，用于接收验证码
+  paymentRequestedAt DateTime?               // 用户请求支付的时间
+  verificationCode    String?                // 邮箱验证码
+  verificationSentAt  DateTime?              // 验证码发送时间
 
   orders Order[]
 }

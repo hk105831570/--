@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, FileText, Eye, LogOut } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, FileText, Eye, LogOut, DollarSign, CheckCircle2, XCircle, Mail } from "lucide-react";
 
 interface CaseItem {
   id: string;
@@ -15,6 +15,16 @@ interface CaseItem {
   riskScore: number;
   hasReport: boolean;
   reportNumber: string | null;
+}
+
+interface PendingCase {
+  id: string;
+  createdAt: string;
+  userRole: string;
+  sceneTitle: string;
+  riskLevel: string;
+  email: string | null;
+  paymentRequestedAt: string;
 }
 
 interface CasesResponse {
@@ -63,17 +73,61 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
+  // 待确认支付
+  const [pendingCases, setPendingCases] = useState<PendingCase[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [confirmMsg, setConfirmMsg] = useState<{ id: string; msg: string; success: boolean } | null>(null);
+
   useEffect(() => {
     fetch("/api/admin/check")
       .then((res) => {
         if (!res.ok) throw new Error("unauthorized");
         setAuthed(true);
+        fetchPending();
       })
       .catch(() => {
         router.replace("/admin/login");
       })
       .finally(() => setChecking(false));
   }, [router]);
+
+  const fetchPending = async () => {
+    setPendingLoading(true);
+    try {
+      const res = await fetch("/api/admin/cases/pending");
+      if (res.ok) {
+        const json = await res.json();
+        setPendingCases(json.cases || []);
+      }
+    } catch {
+      // 静默处理
+    } finally {
+      setPendingLoading(false);
+    }
+  };
+
+  const handleConfirmPayment = async (caseId: string) => {
+    setConfirmingId(caseId);
+    setConfirmMsg(null);
+    try {
+      const res = await fetch(`/api/admin/cases/${caseId}/confirm-payment`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setConfirmMsg({ id: caseId, msg: `已确认，验证码发送至 ${data.email}`, success: true });
+        // 从待确认列表中移除
+        setPendingCases((prev) => prev.filter((c) => c.id !== caseId));
+      } else {
+        setConfirmMsg({ id: caseId, msg: data.error || "确认失败", success: false });
+      }
+    } catch {
+      setConfirmMsg({ id: caseId, msg: "网络错误", success: false });
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
@@ -152,6 +206,90 @@ export default function AdminPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-5 py-8">
+        {/* 待确认支付 */}
+        {pendingCases.length > 0 && (
+          <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-amber-700" />
+                <h2 className="text-base font-semibold text-amber-900">待确认收款</h2>
+                <span className="inline-flex items-center rounded-full bg-amber-200 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+                  {pendingCases.length}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={fetchPending}
+                className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${pendingLoading ? "animate-spin" : ""}`} />
+                刷新
+              </button>
+            </div>
+            <div className="space-y-3">
+              {pendingCases.map((c) => (
+                <div key={c.id} className="rounded-lg border border-amber-200 bg-white p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-slate-900 truncate">{c.sceneTitle}</span>
+                        <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                          {ROLE_LABELS[c.userRole] || c.userRole}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
+                        <span>请求时间：{new Date(c.paymentRequestedAt).toLocaleString("zh-CN")}</span>
+                        {c.email && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {c.email}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 ml-4">
+                      <Link
+                        href={`/admin/cases/${c.id}`}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        查看
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleConfirmPayment(c.id)}
+                        disabled={confirmingId === c.id}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {confirmingId === c.id ? (
+                          "确认中..."
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-4 w-4" />
+                            确认收款
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {confirmMsg && confirmMsg.id === c.id && (
+                    <div className={`mt-2 rounded-lg p-2 text-xs ${
+                      confirmMsg.success ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                    }`}>
+                      {confirmMsg.success ? (
+                        <CheckCircle2 className="inline h-3.5 w-3.5 mr-1" />
+                      ) : (
+                        <XCircle className="inline h-3.5 w-3.5 mr-1" />
+                      )}
+                      {confirmMsg.msg}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
@@ -198,7 +336,7 @@ export default function AdminPage() {
           </p>
           <button
             type="button"
-            onClick={() => fetchData(page, riskLevel, search)}
+            onClick={() => { fetchData(page, riskLevel, search); fetchPending(); }}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -258,30 +396,14 @@ export default function AdminPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    时间
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    身份
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    场景
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    企业名称
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    风险等级
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase text-slate-500">
-                    风险分
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase text-slate-500">
-                    AI 报告
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase text-slate-500">
-                    操作
-                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">时间</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">身份</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">场景</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">企业名称</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">风险等级</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase text-slate-500">风险分</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase text-slate-500">AI 报告</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase text-slate-500">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -307,11 +429,7 @@ export default function AdminPage() {
                       {c.companyName || "-"}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-semibold ${
-                          RISK_COLORS[c.riskLevel] || ""
-                        }`}
-                      >
+                      <span className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-semibold ${RISK_COLORS[c.riskLevel] || ""}`}>
                         {RISK_LABELS[c.riskLevel] || c.riskLevel}
                       </span>
                     </td>
@@ -320,13 +438,9 @@ export default function AdminPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       {c.hasReport ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                          已生成
-                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">已生成</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
-                          未生成
-                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">未生成</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -334,8 +448,7 @@ export default function AdminPage() {
                         href={`/admin/cases/${c.id}`}
                         className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900"
                       >
-                        <Eye className="h-4 w-4" />
-                        查看
+                        <Eye className="h-4 w-4" />查看
                       </Link>
                     </td>
                   </tr>
