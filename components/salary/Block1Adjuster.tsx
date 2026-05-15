@@ -22,8 +22,10 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
   const [sInput, setSInput] = useState(String(config.originalSalary));
   const [mInput, setMInput] = useState(String(config.minimumWage));
   const [bInput, setBInput] = useState(String(config.baseSalary));
+  const [aInput, setAInput] = useState(String(config.originalSalary - config.baseSalary));
 
   const { originalSalary: S, minimumWage: M, baseSalary: B } = config;
+  const A = S - B;
   const rates = calculateRates(config);
   const safetyMargin = B - M;
   const safetyPercent = M > 0 ? ((safetyMargin / M) * 100).toFixed(1) : '0.0';
@@ -58,6 +60,7 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
     }
   };
 
+  // B changes → A follows
   const handleBChange = (val: string) => {
     setBInput(val);
     const v = parseFloat(val);
@@ -84,9 +87,34 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
     onConfigChange({ ...config, baseSalary: v });
   };
 
+  // A changes → B follows (B = S - A, clamped)
+  const handleAChange = (val: string) => {
+    setAInput(val);
+    const v = parseFloat(val);
+    if (!isNaN(v) && v >= 0) {
+      const newB = Math.max(M, Math.min(S, S - v));
+      onConfigChange({ ...config, baseSalary: newB });
+    }
+  };
+
+  const handleABlur = () => {
+    const v = parseFloat(aInput);
+    if (!isNaN(v) && v >= 0) {
+      const newB = Math.max(M, Math.min(S, S - v));
+      setAInput(String(S - newB));
+      onConfigChange({ ...config, baseSalary: newB });
+    } else {
+      setAInput(String(A));
+    }
+  };
+
+  // Keep inputs in sync when config is updated externally
   useEffect(() => { setSInput(String(config.originalSalary)); }, [config.originalSalary]);
   useEffect(() => { setMInput(String(config.minimumWage)); }, [config.minimumWage]);
-  useEffect(() => { setBInput(String(config.baseSalary)); }, [config.baseSalary]);
+  useEffect(() => {
+    setBInput(String(config.baseSalary));
+    setAInput(String(config.originalSalary - config.baseSalary));
+  }, [config.baseSalary, config.originalSalary]);
 
   return (
     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
@@ -95,6 +123,7 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
         薪资结构调节器
       </h2>
 
+      {/* S and M inputs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
         <div>
           <label className="block text-xs text-gray-500 mb-1.5">原月薪 S（元）</label>
@@ -118,33 +147,49 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
         </div>
       </div>
 
-      {/* Base salary slider */}
-      <div className="mb-5">
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs text-gray-500">底薪 B（元）</label>
+      {/* B slider + B/A dual input */}
+      <div className="mb-5 space-y-3">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs text-gray-500">底薪 B（元）</label>
+            <input
+              type="number"
+              value={bInput}
+              onChange={e => handleBChange(e.target.value)}
+              onBlur={handleBBlur}
+              min={M}
+              max={S}
+              className="w-28 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-400 shrink-0 w-20 text-right">{formatCurrency(M)}</span>
+            <input
+              type="range"
+              min={M}
+              max={S}
+              step={10}
+              value={B}
+              onChange={handleSlider}
+              className="flex-1 h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-blue-600"
+            />
+            <span className="text-xs text-gray-400 shrink-0 w-20">{formatCurrency(S)}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-gray-500">岗位津贴 A（元）</label>
           <input
             type="number"
-            value={bInput}
-            onChange={e => handleBChange(e.target.value)}
-            onBlur={handleBBlur}
-            min={M}
-            max={S}
+            value={aInput}
+            onChange={e => handleAChange(e.target.value)}
+            onBlur={handleABlur}
+            min={0}
+            max={S - M}
             className="w-28 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-400 shrink-0 w-20 text-right">{formatCurrency(M)}</span>
-          <input
-            type="range"
-            min={M}
-            max={S}
-            step={10}
-            value={B}
-            onChange={handleSlider}
-            className="flex-1 h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-blue-600"
-          />
-          <span className="text-xs text-gray-400 shrink-0 w-20">{formatCurrency(S)}</span>
-        </div>
+        <p className="text-xs text-gray-400">底薪 ↔ 岗位津贴 双向联动，底薪最低 {formatCurrency(M)}</p>
       </div>
 
       {isBelowMin && (
@@ -166,8 +211,8 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
         />
         <InfoCard
           label="岗位津贴 A"
-          value={formatCurrency(rates.positionAllowance)}
-          sub={`占原月薪 ${((rates.positionAllowance / S) * 100).toFixed(1)}%`}
+          value={formatCurrency(A)}
+          sub={`占原月薪 ${((A / S) * 100).toFixed(1)}%`}
         />
         <InfoCard
           label="安全垫（超最低工资）"

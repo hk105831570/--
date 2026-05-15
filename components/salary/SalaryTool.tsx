@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import type { SalaryConfig, MonthlyInput } from './types';
-import { DEFAULT_HOLIDAYS_2025, DEFAULT_WORKDAY_OVERRIDES_2025 } from './constants';
+import { DEFAULT_HOLIDAYS_2026, DEFAULT_WORKDAY_OVERRIDES_2026 } from './constants';
 import { formatMonthKey } from './utils';
 import Block1Adjuster from './Block1Adjuster';
 import Block2Calendar from './Block2Calendar';
@@ -38,14 +38,14 @@ function save(key: string, value: unknown) {
 
 export default function SalaryTool() {
   const [config, setConfig] = useState<SalaryConfig>(() => load('sc:config', DEFAULT_CONFIG));
-  const [holidays, setHolidays] = useState<string[]>(() => load('sc:holidays', DEFAULT_HOLIDAYS_2025));
+  const [holidays, setHolidays] = useState<string[]>(() => load('sc:holidays', DEFAULT_HOLIDAYS_2026));
   const [workdayOverrides, setWorkdayOverrides] = useState<string[]>(() =>
-    load('sc:overrides', DEFAULT_WORKDAY_OVERRIDES_2025)
+    load('sc:overrides', DEFAULT_WORKDAY_OVERRIDES_2026)
   );
   const [monthlyInputs, setMonthlyInputs] = useState<Record<string, MonthlyInput>>(() =>
     load('sc:monthly', {})
   );
-  const [selectedYear, setSelectedYear] = useState(2025);
+  const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
   useEffect(() => { save('sc:config', config); }, [config]);
