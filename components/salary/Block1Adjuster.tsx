@@ -22,7 +22,6 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
   const [sInput, setSInput] = useState(String(config.originalSalary));
   const [mInput, setMInput] = useState(String(config.minimumWage));
   const [bInput, setBInput] = useState(String(config.baseSalary));
-  const [aInput, setAInput] = useState(String(config.originalSalary - config.baseSalary));
 
   const { originalSalary: S, minimumWage: M, baseSalary: B } = config;
   const A = S - B;
@@ -87,34 +86,10 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
     onConfigChange({ ...config, baseSalary: v });
   };
 
-  // A changes → B follows (B = S - A, clamped)
-  const handleAChange = (val: string) => {
-    setAInput(val);
-    const v = parseFloat(val);
-    if (!isNaN(v) && v >= 0) {
-      const newB = Math.max(M, Math.min(S, S - v));
-      onConfigChange({ ...config, baseSalary: newB });
-    }
-  };
-
-  const handleABlur = () => {
-    const v = parseFloat(aInput);
-    if (!isNaN(v) && v >= 0) {
-      const newB = Math.max(M, Math.min(S, S - v));
-      setAInput(String(S - newB));
-      onConfigChange({ ...config, baseSalary: newB });
-    } else {
-      setAInput(String(A));
-    }
-  };
-
   // Keep inputs in sync when config is updated externally
   useEffect(() => { setSInput(String(config.originalSalary)); }, [config.originalSalary]);
   useEffect(() => { setMInput(String(config.minimumWage)); }, [config.minimumWage]);
-  useEffect(() => {
-    setBInput(String(config.baseSalary));
-    setAInput(String(config.originalSalary - config.baseSalary));
-  }, [config.baseSalary, config.originalSalary]);
+  useEffect(() => { setBInput(String(config.baseSalary)); }, [config.baseSalary]);
 
   return (
     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
@@ -177,19 +152,7 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <label className="text-xs text-gray-500">岗位津贴 A（元）</label>
-          <input
-            type="number"
-            value={aInput}
-            onChange={e => handleAChange(e.target.value)}
-            onBlur={handleABlur}
-            min={0}
-            max={S - M}
-            className="w-28 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <p className="text-xs text-gray-400">底薪 ↔ 岗位津贴 双向联动，底薪最低 {formatCurrency(M)}</p>
+        <p className="text-xs text-gray-400">岗位津贴自动补差：A = S − B = {formatCurrency(A)}</p>
       </div>
 
       {isBelowMin && (
