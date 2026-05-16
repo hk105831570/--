@@ -1,7 +1,8 @@
 export interface SalaryConfig {
-  originalSalary: number; // S
+  originalSalary: number; // S（仅作参考基准）
   minimumWage: number;    // M
   baseSalary: number;     // B
+  allowance: number;      // A（手动设置，独立于 B）
 }
 
 export interface MonthlyInput {

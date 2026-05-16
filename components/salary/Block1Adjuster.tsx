@@ -22,9 +22,9 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
   const [sInput, setSInput] = useState(String(config.originalSalary));
   const [mInput, setMInput] = useState(String(config.minimumWage));
   const [bInput, setBInput] = useState(String(config.baseSalary));
+  const [aInput, setAInput] = useState(String(config.allowance));
 
-  const { originalSalary: S, minimumWage: M, baseSalary: B } = config;
-  const A = S - B;
+  const { originalSalary: S, minimumWage: M, baseSalary: B, allowance: A } = config;
   const rates = calculateRates(config);
   const safetyMargin = B - M;
   const safetyPercent = M > 0 ? ((safetyMargin / M) * 100).toFixed(1) : '0.0';
@@ -59,7 +59,6 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
     }
   };
 
-  // B changes → A follows
   const handleBChange = (val: string) => {
     setBInput(val);
     const v = parseFloat(val);
@@ -80,25 +79,41 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
     }
   };
 
+  const handleAChange = (val: string) => {
+    setAInput(val);
+    const v = parseFloat(val);
+    if (!isNaN(v) && v >= 0) {
+      onConfigChange({ ...config, allowance: v });
+    }
+  };
+
+  const handleABlur = () => {
+    const v = parseFloat(aInput);
+    if (!isNaN(v) && v >= 0) {
+      onConfigChange({ ...config, allowance: v });
+    } else {
+      setAInput(String(A));
+    }
+  };
+
   const handleSlider = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = parseFloat(e.target.value);
     setBInput(String(v));
     onConfigChange({ ...config, baseSalary: v });
   };
 
-  // Keep inputs in sync when config is updated externally
   useEffect(() => { setSInput(String(config.originalSalary)); }, [config.originalSalary]);
   useEffect(() => { setMInput(String(config.minimumWage)); }, [config.minimumWage]);
   useEffect(() => { setBInput(String(config.baseSalary)); }, [config.baseSalary]);
+  useEffect(() => { setAInput(String(config.allowance)); }, [config.allowance]);
 
   return (
     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
       <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold shrink-0">1</span>
-        薪资结构调节器
+        薪资结构设置
       </h2>
 
-      {/* S and M inputs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
         <div>
           <label className="block text-xs text-gray-500 mb-1.5">原月薪 S（元）</label>
@@ -122,7 +137,7 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
         </div>
       </div>
 
-      {/* B slider + B/A dual input */}
+      {/* B slider + A input */}
       <div className="mb-5 space-y-3">
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -152,7 +167,17 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
           </div>
         </div>
 
-        <p className="text-xs text-gray-400">岗位津贴自动补差：A = S − B = {formatCurrency(A)}</p>
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-gray-500">岗位津贴 A（元）</label>
+          <input
+            type="number"
+            value={aInput}
+            onChange={e => handleAChange(e.target.value)}
+            onBlur={handleABlur}
+            min={0}
+            className="w-28 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
       </div>
 
       {isBelowMin && (
@@ -170,12 +195,12 @@ export default function Block1Adjuster({ config, onConfigChange }: Props) {
         <InfoCard
           label="底薪 B"
           value={formatCurrency(B)}
-          sub={`占原月薪 ${((B / S) * 100).toFixed(1)}%`}
+          sub={`占原月薪 ${S > 0 ? ((B / S) * 100).toFixed(1) : '0'}%`}
         />
         <InfoCard
           label="岗位津贴 A"
           value={formatCurrency(A)}
-          sub={`占原月薪 ${((A / S) * 100).toFixed(1)}%`}
+          sub={`占原月薪 ${S > 0 ? ((A / S) * 100).toFixed(1) : '0'}%`}
         />
         <InfoCard
           label="安全垫（超最低工资）"
